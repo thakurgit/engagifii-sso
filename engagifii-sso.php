@@ -120,8 +120,13 @@ function engagifii_sso_config_settings() {
 
                     echo "</td></tr>";
                 } ?>
+                <tr>
+                	<td><?php submit_button(); ?></td>
+                    <td> <button id="sso-test-btn" class="button button-small">Test Configuration</button></td>
+                </tr>
             </table>
-            <?php submit_button(); ?>
+            
+            
         </form>
     <?php
 }
@@ -145,7 +150,8 @@ function engagifii_login_settings_settings() {
 					if ($key == 'disable_login_form') {
 						$checked = !empty($value) ? 'checked' : '';
 						echo '<div class="form-check form-switch">
-							<input class="form-check-input" type="checkbox" name="engagifii_sso_settings[' . $key . ']" '. $checked .'> 
+							<input type="hidden" name="engagifii_sso_settings[' . $key . ']" value="0"> 
+							<input class="form-check-input" type="checkbox" name="engagifii_sso_settings[' . $key . ']" value="1" ' . $checked . '> 
 							</div>';
 					//radio 
 					} else if($key == 'sso_login_button'){
@@ -184,17 +190,27 @@ function engagifii_sso_help_section() {
 function engagifii_sso_login() {
 	 $options = get_option('engagifii_sso_settings', []);
     if (empty($options['client_id']) || empty($options['auth_endpoint'])) {
-        wp_die('SSO settings are not configured.');
+       if (defined('DOING_AJAX') && DOING_AJAX) {
+            wp_send_json_error(['message' => 'SSO settings are not configured.']);
+        } else {
+            wp_die('SSO settings are not configured.');
+        }
     }
     $client_id = get_option('engagifii_client_id');
     $redirect_uri = site_url();
 	 $authorize_url = "{$options['auth_endpoint']}?response_type=code&client_id={$options['client_id']}&redirect_uri=" . site_url() . "&scope=" . $options['scope'];
     
-    
-    wp_redirect($authorize_url);
-    exit;
+    if (defined('DOING_AJAX') && DOING_AJAX) {
+        wp_send_json_success(['url' => $authorize_url]);
+    } else {
+        wp_redirect($authorize_url);
+        exit;
+    }
 }
 add_action('login_form_engagifii_sso', 'engagifii_sso_login');
+add_action('wp_ajax_engagifii_sso_login', 'engagifii_sso_login');
+add_action('wp_ajax_nopriv_engagifii_sso_login', 'engagifii_sso_login');
+
 
 // Handle SSO Callback
 function engagifii_sso_callback() {
@@ -219,7 +235,6 @@ function engagifii_sso_callback() {
     if (is_wp_error($token_response)) {
         wp_die('SSO Token Request Failed.');
     }
-
     $token_data = json_decode(wp_remote_retrieve_body($token_response), true);
     if (!isset($token_data['access_token'])) {
         wp_die('Access token missing.');
@@ -239,7 +254,15 @@ $userinfo_endpoint = get_option('userinfo_endpoint');
     if (empty($user_data['email'])) {
         wp_die('No email provided.');
     }
-
+	if (current_user_can('administrator')) {
+        echo "<table border='1' cellpadding='10' cellspacing='0'>";
+		  echo "<tr><th>Key</th><th>Value</th></tr>";
+		  foreach ($user_data as $key => $value) {
+			  echo "<tr><td>{$key}</td><td>{$value}</td></tr>";
+		  }
+		  echo '<tr><td colspan="2"><center><a style="padding:10px 20px; background:#000; color:white" href="'.$options['logout_url'] ."?ReturnUrl=" . urlencode(home_url()).'">Log Out</a></center></td></tr></table>';
+        die;
+    } 
     $user = get_user_by('email', $user_data['email']);
     if (!$user) {
 	  
@@ -291,7 +314,7 @@ function generate_unique_username($first_name, $last_name, $email) {
 // Remove login error messages and default form fields
 function custom_login_styles() {
 	$options = get_option('engagifii_sso_settings', []);
-	if(!$options['disable_login_form']){
+	if(empty($options['disable_login_form'])) {
 		return;
 		add_filter('login_errors', '__return_empty_string');
 	}

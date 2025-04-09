@@ -5,7 +5,7 @@
  * Description: Enables SSO login with a Engagifii credentials.
  * Author:      Engagifii
  * Author URI:  https://engagifii.com/
- * Version:     2.0.0
+ * Version:     2.1.0
  * Text Domain: engagifii-sso
  * Domain Path: /languages/
  * License:     GPLv3 or later (license.txt)
@@ -239,6 +239,13 @@ function engagifii_sso_callback() {
     if (!isset($token_data['access_token'])) {
         wp_die('Access token missing.');
     }
+	setcookie("access_token", $token_data['access_token'], [
+    'path' => '/',
+    'domain' => '',
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'Strict'
+	]);
 $userinfo_endpoint = get_option('userinfo_endpoint');
     $user_response = wp_remote_get($options['userinfo_endpoint'], [
         'headers' => [
@@ -281,7 +288,6 @@ $userinfo_endpoint = get_option('userinfo_endpoint');
         }
         $user = get_user_by('ID', $user_id);
     }
-
     wp_set_auth_cookie($user->ID);
     wp_redirect(site_url());
     exit;
@@ -356,6 +362,13 @@ add_action('login_footer', 'add_engagifii_sso_button');
 
 // Logout Redirect
 function engagifii_sso_logout_redirect() {
+	setcookie('access_token', '', [
+        'expires'  => time() - 3600,
+        'path'     => '/',
+        'secure'   => true,
+        'httponly' => true,
+        'samesite' => 'Strict'
+    ]);
 	$options = get_option('engagifii_sso_settings', []);
     $site_logout_url = $options['logout_url'] ."?ReturnUrl=" . urlencode(home_url());
     wp_redirect($site_logout_url);
@@ -374,7 +387,7 @@ function engaifii_sso_plugin_update($transient) {
     }
 
     // Get the current version of the plugin
-    $current_version = '2.0.0'; // Update this to your current version
+    $current_version = '2.1.0'; // Update this to your current version
 
     // Fetch the update information from your JSON file
     $response = wp_remote_get('https://engagifiiweb.com/engagifii_plugins/engagifii_sso/plugin-updates.json');

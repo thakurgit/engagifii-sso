@@ -14,7 +14,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
- 
+ define('ENGAGIFII_SSO_VERSION','2.1.0');
 // Add settings menu
 function engagifii_sso_menu() {
     add_menu_page(
@@ -439,16 +439,6 @@ function engagifii_sso_plugin_info( $res, $action, $args ){
 }
 add_filter('pre_set_site_transient_update_plugins', 'engaifii_sso_plugin_update');
 function engaifii_sso_plugin_update($transient) {
-	
-    // Only check for updates if we're not in the admin area
-    if (is_admin()) {
-        return $transient;
-    }
-
-    // Get the current version of the plugin
-    $current_version = '2.1.0'; // Update this to your current version
-
-    // Fetch the update information from your JSON file
     $response = wp_remote_get('https://engagifiiweb.com/engagifii_plugins/engagifii_sso/plugin-updates.json');
 
     if (is_wp_error($response)) {
@@ -458,7 +448,7 @@ function engaifii_sso_plugin_update($transient) {
     $data = json_decode(wp_remote_retrieve_body($response)); 
 
     // Check if there's a new version available
-    if (version_compare($current_version, $data->version, '<')) {
+    if (version_compare(ENGAGIFII_SSO_VERSION, $data->version, '<')) {
         $transient->response[plugin_basename(__FILE__)] = (object) array(
             'slug' => 'engagifii-sso', //plugin folder name
             'plugin' => plugin_basename(__FILE__),

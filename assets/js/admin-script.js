@@ -34,20 +34,23 @@ jQuery(document).ready(function($) {
         $button.addClass('hidden');
     });
 });
-document.getElementById("sso-test-btn").addEventListener("click", function (event) {
-    event.preventDefault(); // Prevents page reload
-
-    const ajaxUrl = "/wp-admin/admin-ajax.php?action=engagifii_sso_login"; // Update this if needed
-
-    fetch(ajaxUrl)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.data.url) {
-                window.open(data.data.url, "_blank", "width=600,height=600");
-            } else {
-                alert(data.data.message || "Unknown error");
-            }
-        })
-        .catch(error => console.error("Error:", error));
-});
+    const ssoBtn = document.getElementById("sso-test-btn");
+	 if (ssoBtn) {
+		ssoBtn.addEventListener("click", function (event) {
+			event.preventDefault(); // Prevents page reload
+		
+			const ajaxUrl = "/wp-admin/admin-ajax.php?action=engagifii_sso_login"; // Update this if needed
+		
+			fetch(ajaxUrl)
+				.then(response => response.json())
+				.then(data => {
+					if (data.success && data.data.url) {
+						window.open(data.data.url, "_blank", "width=600,height=600");
+					} else {
+						alert(data.data.message || "Unknown error");
+					}
+				})
+				.catch(error => console.error("Error:", error));
+		});
+	 }
 

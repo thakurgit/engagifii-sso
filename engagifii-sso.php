@@ -5,7 +5,7 @@
  * Description: Enables SSO login with a Engagifii credentials.
  * Author:      Engagifii
  * Author URI:  https://Crescerance.com/
- * Version:     2.1.0
+ * Version:     2.2.0
  * Text Domain: engagifii-sso
  * Domain Path: /languages/
  * License:     GPLv3 or later (license.txt)
@@ -14,7 +14,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
- define('ENGAGIFII_SSO_VERSION','2.1.0');
+ define('ENGAGIFII_SSO_VERSION','2.2.0');
 // Add settings menu
 function engagifii_sso_menu() {
     add_menu_page(

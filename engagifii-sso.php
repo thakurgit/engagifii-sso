@@ -5,7 +5,7 @@
  * Description: Enables SSO login with a Engagifii credentials.
  * Author:      Engagifii
  * Author URI:  https://Crescerance.com/
- * Version:     2.2.0
+ * Version:     2.2.1
  * Text Domain: engagifii-sso
  * Domain Path: /languages/
  * License:     GPLv3 or later (license.txt)
@@ -14,7 +14,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
- define('ENGAGIFII_SSO_VERSION','2.2.0');
+ define('ENGAGIFII_SSO_VERSION','2.2.1');
 // Add settings menu
 function engagifii_sso_menu() {
     add_menu_page(
@@ -480,11 +480,12 @@ function my_plugin_admin_styles() {
     );
 	 wp_enqueue_media();
 	wp_enqueue_script(
-        'my-plugin-admin-script',
+        'engagifii-sso',
         plugin_dir_url(__FILE__) . 'assets/js/admin-script.js',
         array('jquery'), // Dependencies (if needed)
-        '1.0',
-        true // Load in footer
+        '1.1',
+        true // Load in footer 
     );
+  wp_localize_script( 'engagifii-sso', 'engagifii_sso_ajaxURL', admin_url('admin-ajax.php?action=engagifii_sso_login') );
 }
-add_action('admin_enqueue_scripts', 'my_plugin_admin_styles');
+add_action('admin_enqueue_scripts', 'my_plugin_admin_styles'); 

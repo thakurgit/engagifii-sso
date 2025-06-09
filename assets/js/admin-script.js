@@ -39,10 +39,8 @@ jQuery(document).ready(function($) {
 		ssoBtn.addEventListener("click", function (event) {
 			event.preventDefault(); // Prevents page reload
 		
-			const ajaxUrl = "/wp-admin/admin-ajax.php?action=engagifii_sso_login"; // Update this if needed
-		
-			fetch(ajaxUrl)
-				.then(response => response.json())
+			fetch(engagifii_sso_ajaxURL)
+				.then(response => response.json()) 
 				.then(data => {
 					if (data.success && data.data.url) {
 						window.open(data.data.url, "_blank", "width=600,height=600");

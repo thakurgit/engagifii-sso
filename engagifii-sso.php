@@ -5,7 +5,7 @@
  * Description: Enables SSO login with a Engagifii credentials.
  * Author:      Engagifii
  * Author URI:  https://Crescerance.com/
- * Version:     2.2.1
+ * Version:     2.2.2
  * Text Domain: engagifii-sso
  * Domain Path: /languages/
  * License:     GPLv3 or later (license.txt)
@@ -14,7 +14,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
- define('ENGAGIFII_SSO_VERSION','2.2.1');
+ define('ENGAGIFII_SSO_VERSION','2.2.2');
 // Add settings menu
 function engagifii_sso_menu() {
     add_menu_page(
@@ -138,7 +138,9 @@ function engagifii_login_settings_settings() {
 
     $fields = [
         'disable_login_form'       => 'Disable Default Login form',
-        'sso_login_button'       => 'SSO Login Button'
+        'sso_login_button'       => 'SSO Login Button',
+		'sso_after_login' => 'After login Redirect to',
+		'sso_after_logout' => 'After logout Redirect to',
     ];
     ?>
         <form method="post" action="options.php">
@@ -169,6 +171,25 @@ function engagifii_login_settings_settings() {
 								<button class='remove_sso_logo button {$hidden}'>Remove Logo</button>
 								<button class='set_sso_logo button'>Add Your own Logo</button>
 							  </div>";
+					} else if($key == 'sso_after_login' || $key == 'sso_after_logout'){
+						 $pages = get_pages();
+                          $selected_value = isset($options[$key]) ? $options[$key] : '';
+
+                          echo '<select id="login_redirect" name="engagifii_sso_settings[' . esc_attr($key) . ']">';
+                          echo '<option value="">-- Select a Page --</option>';
+
+                          foreach ($pages as $page) {
+                              $page_id = $page->ID;
+                              $page_title = $page->post_title;
+                              $selected = selected($selected_value, $page_id, false);
+                              echo '<option value="' . esc_attr($page_id) . '" ' . $selected . '>' . esc_html($page_title) . '</option>';
+                          }
+
+                           $help_text = ($key === 'sso_after_login') 
+                              ? 'Select a page to redirect your users to after they login.' 
+                              : 'Select a page to redirect your users to after they logout. This only works if the site is publicly accessible (not restricted to logged-in users)';
+
+                          echo '</select><p><small>' . esc_html($help_text) . '</small></p>';
 					}
 
                     echo "</td></tr>";
@@ -224,6 +245,8 @@ function engagifii_sso_callback() {
     if (empty($options['client_id']) || empty($options['client_secret']) || empty($options['token_endpoint'])) {
         wp_die('SSO settings are incomplete.');
     }
+	$redirect_page_id = isset($options['sso_after_login']) ? $options['sso_after_login'] : '';
+    $redirect_url = $redirect_page_id ? get_permalink($redirect_page_id) : site_url();
 	$grant_type = $options['grant_type'] ?? 'authorization_code';
     $token_response = wp_remote_post($options['token_endpoint'], [
         'body' => [
@@ -282,7 +305,7 @@ $userinfo_endpoint = get_option('userinfo_endpoint');
 	  $user_login = generate_unique_username($user_data['given_name'] ?? '', $user_data['family_name'] ?? '', $user_data['email']);
         $user_id = wp_insert_user([
             'user_login' => $user_login,
-            'user_email' => $user_data['email'],
+            'user_email' => sanitize_email($user_data['email']),
             'user_pass'  => wp_generate_password(),
             'first_name' => $user_data['given_name'] ?? '',
             'last_name'  => $user_data['family_name'] ?? '',
@@ -296,7 +319,7 @@ $userinfo_endpoint = get_option('userinfo_endpoint');
 		do_action('engagifii_sso_authenticated', $user->ID, $token_data['access_token']); 
     }
     wp_set_auth_cookie($user->ID);
-    wp_redirect(site_url());
+    wp_redirect($redirect_url);
     exit;
 }
 add_action('init', 'engagifii_sso_callback');
@@ -377,7 +400,14 @@ function engagifii_sso_logout_redirect() {
         'samesite' => 'Strict'
     ]);
 	$options = get_option('engagifii_sso_settings', []);
-    $site_logout_url = $options['logout_url'] ."?ReturnUrl=" . urlencode(home_url());
+    $logout_return_url = home_url(); // default fallback
+    if (!is_user_logged_in() && isset($options['sso_after_logout']) && !empty($options['sso_after_logout'])) {
+        $custom_logout_page = get_permalink($options['sso_after_logout']);
+        if ($custom_logout_page) {
+            $logout_return_url = $custom_logout_page;
+        }
+    }
+    $site_logout_url = $options['logout_url'] . "?ReturnUrl=" . urlencode($logout_return_url);
     wp_redirect($site_logout_url);
     exit;
 }

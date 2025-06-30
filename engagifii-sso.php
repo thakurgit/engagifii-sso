@@ -189,6 +189,8 @@ function engagifii_sso_help_section() {
 
 // Redirect users to Engagifii SSO login
 function engagifii_sso_login() {
+	session_start();
+    $_SESSION['sso_test'] = $_POST['sso_test'] ?? false;
 	 $options = get_option('engagifii_sso_settings', []);
     if (empty($options['client_id']) || empty($options['auth_endpoint'])) {
        if (defined('DOING_AJAX') && DOING_AJAX) {
@@ -255,13 +257,16 @@ $userinfo_endpoint = get_option('userinfo_endpoint');
     if (empty($user_data['email'])) {
         wp_die('No email provided.');
     }
-	if (current_user_can('administrator')) {
+	session_start();
+    $sso_test = $_SESSION['sso_test'] ?? false;
+	if (current_user_can('administrator') && $sso_test==true) {
         echo "<table border='1' cellpadding='10' cellspacing='0'>";
 		  echo "<tr><th>Key</th><th>Value</th></tr>";
 		  foreach ($user_data as $key => $value) {
 			  echo "<tr><td>{$key}</td><td>{$value}</td></tr>";
 		  }
 		  echo '<tr><td colspan="2"><center><a style="padding:10px 20px; background:#000; color:white" href="'.$options['logout_url'] ."?ReturnUrl=" . urlencode(home_url()).'">Log Out</a></center></td></tr></table>';
+		  $sso_test=false;
         die;
     } 
 	setcookie("access_token", $token_data['access_token'], [

@@ -38,8 +38,15 @@ jQuery(document).ready(function($) {
 	 if (ssoBtn) {
 		ssoBtn.addEventListener("click", function (event) {
 			event.preventDefault(); // Prevents page reload
-		
-			fetch(engagifii_sso_ajaxURL)
+		const formData = new URLSearchParams();
+		formData.append("sso_test", true);
+			fetch(engagifii_sso_ajaxURL, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded"
+			},
+			body: formData.toString()
+		})
 				.then(response => response.json()) 
 				.then(data => {
 					if (data.success && data.data.url) {

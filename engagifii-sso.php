@@ -195,7 +195,7 @@ function engagifii_login_settings_settings() {
                     echo "</td></tr>";
                 } ?>
             </table>
-            <?php submit_button(); ?>
+            <?php submit_button(); ?> 
         </form>
     <?php
 }

@@ -145,6 +145,7 @@ function engagifii_login_settings_settings() {
         'sso_after_login'    => 'After login Redirect to',
         'sso_after_logout'   => 'After logout Redirect to',
         'enable_nav_login'   => 'Add login button to navigation',
+        'sso_nav_menu'       => 'Select Navigation Menu',
         'nav_button_width'   => 'Navigation Button Image Width',
         'shortcode_info'     => 'Shortcode',
     ];
@@ -163,7 +164,7 @@ function engagifii_login_settings_settings() {
 							<input class="form-check-input" type="checkbox" name="engagifii_sso_settings[' . $key . ']" value="1" ' . $checked . '> 
 							</div>';
                         if ($key == 'enable_nav_login') {
-                            echo '<p><small>If checked, Engagifii login button will be added to primary menu.</small></p>';
+                            echo '<p><small>If checked, Engagifii login button will be added to the selected navigation menu.</small></p>';
                         }
 					//radio 
 					} else if($key == 'sso_login_button'){
@@ -199,6 +200,18 @@ function engagifii_login_settings_settings() {
                               : 'Select a page to redirect your users to after they logout. This only works if the site is publicly accessible (not restricted to logged-in users)';
 
                           echo '</select><p><small>' . esc_html($help_text) . '</small></p>';
+					} else if ($key == 'sso_nav_menu') {
+                        $menus = wp_get_nav_menus();
+                        $selected_menu = isset($options[$key]) ? $options[$key] : '';
+                        echo '<select id="sso_nav_menu" name="engagifii_sso_settings[' . esc_attr($key) . ']">';
+                        echo '<option value="">-- Select a Menu --</option>';
+                        if (!empty($menus)) {
+                            foreach ($menus as $menu) {
+                                $selected = selected($selected_menu, $menu->term_id, false);
+                                echo '<option value="' . esc_attr($menu->term_id) . '" ' . $selected . '>' . esc_html($menu->name) . '</option>';
+                            }
+                        }
+                        echo '</select><p><small>Select which menu the Engagifii login button should be added to.</small></p>';
 					} else if ($key == 'nav_button_width') {
                         $width_val = !empty($value) ? $value : '110px';
                         echo '<input style="width:200px" type="text" name="engagifii_sso_settings[' . $key . ']" value="' . esc_attr($width_val) . '" placeholder="110px" />';
@@ -207,7 +220,7 @@ function engagifii_login_settings_settings() {
                         echo '<code>[login_with_engagifii]</code>';
                         echo '<p><small>Use this shortcode to place the Engagifii login / logout button anywhere on your site.</small></p>';
                     }
-
+                    
                     echo "</td></tr>";
                 } ?>
             </table>
@@ -454,14 +467,41 @@ function engagifii_sso_login_shortcode() {
 }
 add_shortcode( 'login_with_engagifii', 'engagifii_sso_login_shortcode' );
 
-// Add login button to primary navigation menu
+// Add login button to selected navigation menu
 function engagifii_add_login_logout_to_menu($items, $args) {
     $options = get_option('engagifii_sso_settings', []);
-    if (!empty($options['enable_nav_login'])) {
-        if (isset($args->theme_location) && ($args->theme_location == 'primary' || strpos($args->theme_location, 'primary') !== false)) {
-            $items .= '<li class="menu-item engagifii-sso-nav-item">' . engagifii_sso_login_shortcode() . '</li>';
+    if (empty($options['enable_nav_login'])) {
+        return $items;
+    }
+
+    $selected_menu = isset($options['sso_nav_menu']) ? $options['sso_nav_menu'] : '';
+    if (empty($selected_menu)) {
+        return $items;
+    }
+
+    $should_add = false;
+
+    if (is_object($args) && isset($args->menu)) {
+        if (is_object($args->menu) && isset($args->menu->term_id) && $args->menu->term_id == $selected_menu) {
+            $should_add = true;
+        } elseif (is_numeric($args->menu) && $args->menu == $selected_menu) {
+            $should_add = true;
+        } elseif (is_string($args->menu) && $args->menu === $selected_menu) {
+            $should_add = true;
         }
     }
+
+    if (!$should_add && is_object($args) && isset($args->theme_location) && !empty($args->theme_location)) {
+        $locations = get_nav_menu_locations();
+        if (isset($locations[$args->theme_location]) && $locations[$args->theme_location] == $selected_menu) {
+            $should_add = true;
+        }
+    }
+
+    if ($should_add) {
+        $items .= '<li class="menu-item engagifii-sso-nav-item">' . engagifii_sso_login_shortcode() . '</li>';
+    }
+
     return $items;
 }
 add_filter('wp_nav_menu_items', 'engagifii_add_login_logout_to_menu', 10, 2);

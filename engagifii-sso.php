@@ -207,8 +207,8 @@ function engagifii_login_settings_settings() {
                         echo '<option value="">-- Select a Menu --</option>';
                         if (!empty($menus)) {
                             foreach ($menus as $menu) {
-                                $selected = selected($selected_menu, $menu->term_id, false);
-                                echo '<option value="' . esc_attr($menu->term_id) . '" ' . $selected . '>' . esc_html($menu->name) . '</option>';
+                                $selected = selected($selected_menu, $menu->slug, false);
+                                echo '<option value="' . esc_attr($menu->slug) . '" ' . $selected . '>' . esc_html($menu->name) . '</option>';
                             }
                         }
                         echo '</select><p><small>Select which menu the Engagifii login button should be added to.</small></p>';
@@ -482,7 +482,7 @@ function engagifii_add_login_logout_to_menu($items, $args) {
     $should_add = false;
 
     if (is_object($args) && isset($args->menu)) {
-        if (is_object($args->menu) && isset($args->menu->term_id) && $args->menu->term_id == $selected_menu) {
+        if (is_object($args->menu) && isset($args->menu->slug) && $args->menu->slug == $selected_menu) {
             $should_add = true;
         } elseif (is_numeric($args->menu) && $args->menu == $selected_menu) {
             $should_add = true;
@@ -491,17 +491,9 @@ function engagifii_add_login_logout_to_menu($items, $args) {
         }
     }
 
-    if (!$should_add && is_object($args) && isset($args->theme_location) && !empty($args->theme_location)) {
-        $locations = get_nav_menu_locations();
-        if (isset($locations[$args->theme_location]) && $locations[$args->theme_location] == $selected_menu) {
-            $should_add = true;
-        }
-    }
-
     if ($should_add) {
         $items .= '<li class="menu-item engagifii-sso-nav-item">' . engagifii_sso_login_shortcode() . '</li>';
     }
-
     return $items;
 }
 add_filter('wp_nav_menu_items', 'engagifii_add_login_logout_to_menu', 10, 2);

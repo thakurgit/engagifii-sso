@@ -5,7 +5,7 @@
  * Description: Enables SSO login with a Engagifii credentials.
  * Author:      Engagifii
  * Author URI:  https://Crescerance.com/
- * Version:     2.2.3
+ * Version:     2.2.4
  * Text Domain: engagifii-sso
  * Domain Path: /languages/
  * License:     GPLv3 or later (license.txt)
@@ -14,7 +14,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
- define('ENGAGIFII_SSO_VERSION','2.2.3');
+ define('ENGAGIFII_SSO_VERSION','2.2.4');
 // Add settings menu
 function engagifii_sso_menu() {
     add_menu_page(
@@ -53,6 +53,7 @@ function engagifii_sso_settings_page() {
         <h2 class="nav-tab-wrapper">
             <a href="?page=engagifii-sso&tab=configure_sso" class="nav-tab <?php echo ($current_tab == 'configure_sso') ? 'nav-tab-active' : ''; ?>">Configure SSO</a>
             <a href="?page=engagifii-sso&tab=login_settings" class="nav-tab <?php echo ($current_tab == 'login_settings') ? 'nav-tab-active' : ''; ?>">Login Settings</a>
+            <a href="?page=engagifii-sso&tab=role_mapping" class="nav-tab <?php echo ($current_tab == 'role_mapping') ? 'nav-tab-active' : ''; ?>">Attribute/Role Mapping</a>
             <a href="?page=engagifii-sso&tab=help" class="nav-tab <?php echo ($current_tab == 'help') ? 'nav-tab-active' : ''; ?>">Help</a>
         </h2>
 
@@ -62,6 +63,8 @@ function engagifii_sso_settings_page() {
                 engagifii_sso_help_section();
             } elseif($current_tab == 'login_settings') {
                 engagifii_login_settings_settings();
+            } elseif($current_tab == 'role_mapping') {
+                engagifii_role_mapping_settings();
 			} else {
                 engagifii_sso_config_settings();
             }
@@ -137,10 +140,13 @@ function engagifii_login_settings_settings() {
     $options = get_option('engagifii_sso_settings', []);
 
     $fields = [
-        'disable_login_form'       => 'Disable Default Login form',
-        'sso_login_button'       => 'SSO Login Button',
-		'sso_after_login' => 'After login Redirect to',
-		'sso_after_logout' => 'After logout Redirect to',
+        'disable_login_form' => 'Disable Default Login form',
+        'sso_login_button'   => 'SSO Login Button',
+        'sso_after_login'    => 'After login Redirect to',
+        'sso_after_logout'   => 'After logout Redirect to',
+        'enable_nav_login'   => 'Add login button to navigation',
+        'nav_button_width'   => 'Navigation Button Image Width',
+        'shortcode_info'     => 'Shortcode',
     ];
     ?>
         <form method="post" action="options.php">
@@ -150,12 +156,15 @@ function engagifii_login_settings_settings() {
                     $value = $options[$key] ?? ($defaults[$key] ?? '');
                     echo "<tr><th>{$label}</th><td>";
 					//checkbox
-					if ($key == 'disable_login_form') {
+					if ($key == 'disable_login_form' || $key == 'enable_nav_login') {
 						$checked = !empty($value) ? 'checked' : '';
 						echo '<div class="form-check form-switch">
 							<input type="hidden" name="engagifii_sso_settings[' . $key . ']" value="0"> 
 							<input class="form-check-input" type="checkbox" name="engagifii_sso_settings[' . $key . ']" value="1" ' . $checked . '> 
 							</div>';
+                        if ($key == 'enable_nav_login') {
+                            echo '<p><small>If checked, Engagifii login button will be added to primary menu.</small></p>';
+                        }
 					//radio 
 					} else if($key == 'sso_login_button'){
 						 $checked1 = ($value === '1' || empty($value)) ? 'checked' : ''; 
@@ -190,10 +199,45 @@ function engagifii_login_settings_settings() {
                               : 'Select a page to redirect your users to after they logout. This only works if the site is publicly accessible (not restricted to logged-in users)';
 
                           echo '</select><p><small>' . esc_html($help_text) . '</small></p>';
-					}
+					} else if ($key == 'nav_button_width') {
+                        $width_val = !empty($value) ? $value : '110px';
+                        echo '<input style="width:200px" type="text" name="engagifii_sso_settings[' . $key . ']" value="' . esc_attr($width_val) . '" placeholder="110px" />';
+                        echo '<p><small>Set image width for navigation / shortcode login button (e.g. 110px).</small></p>';
+                    } else if ($key == 'shortcode_info') {
+                        echo '<code>[login_with_engagifii]</code>';
+                        echo '<p><small>Use this shortcode to place the Engagifii login / logout button anywhere on your site.</small></p>';
+                    }
 
                     echo "</td></tr>";
                 } ?>
+            </table>
+            <?php submit_button(); ?> 
+        </form>
+    <?php
+}
+
+//Attribute/Role Mapping settings
+function engagifii_role_mapping_settings(){
+    $options = get_option('engagifii_sso_settings', []);
+    $default_role = isset($options['default_role']) ? $options['default_role'] : 'subscriber';
+    $wp_roles = wp_roles()->get_names();
+    ?>
+        <form method="post" action="options.php">
+            <?php settings_fields('engagifii_sso_options'); ?>
+            <table class="form-table">
+                <tr>
+                    <th><label for="default_role">Default Role</label></th>
+                    <td>
+                        <select id="default_role" name="engagifii_sso_settings[default_role]">
+                            <?php foreach ($wp_roles as $role_key => $role_name) : ?>
+                                <option value="<?php echo esc_attr($role_key); ?>" <?php selected($default_role, $role_key); ?>>
+                                    <?php echo esc_html($role_name); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p><small>Note: Roles will be assigned to new users. Existing users' role will remain the same.</small></p>
+                    </td>
+                </tr>
             </table>
             <?php submit_button(); ?> 
         </form>
@@ -303,13 +347,14 @@ $userinfo_endpoint = get_option('userinfo_endpoint');
     if (!$user) {
 	  
 	  $user_login = generate_unique_username($user_data['given_name'] ?? '', $user_data['family_name'] ?? '', $user_data['email']);
+        $default_role = !empty($options['default_role']) ? $options['default_role'] : 'subscriber';
         $user_id = wp_insert_user([
             'user_login' => $user_login,
             'user_email' => sanitize_email($user_data['email']),
             'user_pass'  => wp_generate_password(),
             'first_name' => $user_data['given_name'] ?? '',
             'last_name'  => $user_data['family_name'] ?? '',
-            'role'       => 'subscriber'
+            'role'       => $default_role
         ]);
 
         if (is_wp_error($user_id)) {
@@ -390,6 +435,36 @@ function add_engagifii_sso_button() {
     <?php
 }
 add_action('login_footer', 'add_engagifii_sso_button');
+
+// Engagifii SSO Login Shortcode
+function engagifii_sso_login_shortcode() {
+    $options = get_option('engagifii_sso_settings', []);
+    $plugin_url = plugin_dir_url(__FILE__) . 'assets/images/';
+    $image_url = $plugin_url . 'Engagifii-Login.webp';
+    $width = !empty($options['nav_button_width']) ? $options['nav_button_width'] : '110px';
+    if (is_numeric($width)) {
+        $width .= 'px';
+    }
+
+    if ( is_user_logged_in() ) {
+        return '<a class="nav-link py-0" href="' . esc_url( wp_logout_url() ) . '">Log Out <i class="fa fa-arrow-right-from-bracket ml-1"></i></a>';
+    } else {
+        return '<a class="nav-link px-3 py-0" title="Login with Engagifii" href="' . esc_url( site_url( '/wp-login.php?action=engagifii_sso' ) ) . '"><img alt="engagifii login" style="width: ' . esc_attr($width) . ';" src="' . esc_url( $image_url ) . '"/></a>';
+    }
+}
+add_shortcode( 'login_with_engagifii', 'engagifii_sso_login_shortcode' );
+
+// Add login button to primary navigation menu
+function engagifii_add_login_logout_to_menu($items, $args) {
+    $options = get_option('engagifii_sso_settings', []);
+    if (!empty($options['enable_nav_login'])) {
+        if (isset($args->theme_location) && ($args->theme_location == 'primary' || strpos($args->theme_location, 'primary') !== false)) {
+            $items .= '<li class="menu-item engagifii-sso-nav-item">' . engagifii_sso_login_shortcode() . '</li>';
+        }
+    }
+    return $items;
+}
+add_filter('wp_nav_menu_items', 'engagifii_add_login_logout_to_menu', 10, 2);
 
 // Logout Redirect
 function engagifii_sso_logout_redirect() {

@@ -133,7 +133,7 @@ class Engagifii_SSO_Auth {
             do_action('engagifii_sso_authenticated', $user->ID, $token_data['access_token']); 
         }
 
-        do_action('engagifii_sso_loggedIn', $user->ID); 
+        do_action('engagifii_sso_loggedIn', $user->ID, $token_data['access_token']); 
         wp_set_auth_cookie($user->ID);
         wp_redirect($redirect_url);
         exit;

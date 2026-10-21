@@ -87,5 +87,6 @@ class Engagifii_SSO {
         // Plugin Updater Hooks
         add_filter('plugins_api', [$this->updater, 'plugin_info'], 20, 3);
         add_filter('pre_set_site_transient_update_plugins', [$this->updater, 'check_update']);
+        add_filter('upgrader_source_selection', [$this->updater, 'fix_folder_name'], 10, 4);
     }
 }

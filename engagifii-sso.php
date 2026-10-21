@@ -5,7 +5,7 @@
  * Description: Enables SSO login with a Engagifii credentials.
  * Author:      Engagifii
  * Author URI:  https://Crescerance.com/
- * Version:     2.3.0
+ * Version:     2.3.1
  * Text Domain: engagifii-sso
  * Domain Path: /languages/
  * License:     GPLv3 or later (license.txt)
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define Plugin Constants
-define('ENGAGIFII_SSO_VERSION', '2.3.0');
+define('ENGAGIFII_SSO_VERSION', '2.3.1');
 define('ENGAGIFII_SSO_PATH', plugin_dir_path(__FILE__));
 define('ENGAGIFII_SSO_URL', plugin_dir_url(__FILE__));
 define('ENGAGIFII_SSO_BASENAME', plugin_basename(__FILE__));

@@ -1,0 +1,80 @@
+name: Build & Release Engagifii SSO Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Tag (e.g. v2.3.0)'
+        required: true
+        default: 'v2.3.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Upload Plugin Zip
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Extract Tag Name
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag_name }}"
+          elif [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Building package for tag: $TAG"
+
+      - name: Package WordPress Plugin
+        run: |
+          mkdir -p build/engagifii-sso
+          cp -r admin assets includes public engagifii-sso.php build/engagifii-sso/
+          [ -f README.md ] && cp README.md build/engagifii-sso/
+          [ -f CHANGELOG.md ] && cp CHANGELOG.md build/engagifii-sso/
+          
+          # Explicitly ensure no GitHub workflows or git files exist in the build directory
+          rm -rf build/engagifii-sso/.github build/engagifii-sso/.git*
+          
+          cd build
+          zip -r engagifii-sso.zip engagifii-sso/
+          cd ..
+          
+          # Verify that release.yml and .github are NOT in the zip
+          if unzip -l build/engagifii-sso.zip | grep -E "release\.yml|\.github"; then
+            echo "ERROR: release.yml or .github found inside zip!"
+            exit 1
+          fi
+          
+          echo "Verification passed: release.yml and .github are completely excluded from engagifii-sso.zip"
+          ls -lh build/engagifii-sso.zip
+
+      - name: Upload Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: engagifii-sso-${{ steps.vars.outputs.tag }}
+          path: build/engagifii-sso.zip
+          retention-days: 30
+
+      - name: Publish Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          files: build/engagifii-sso.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
